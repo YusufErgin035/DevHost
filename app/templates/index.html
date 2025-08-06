@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DevHost</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr"
+      crossorigin="anonymous"
+    />
+    <style>
+      .toast-container-fixed {
+        position: fixed;
+        top: 1rem;
+        left: 1rem;
+        z-index: 1055;
+      }
+      .table > tbody > tr:not(:last-child) {
+        border-bottom: 1px solid #9b9da0;
+      }
+      .table td,
+      .table th {
+        border: none !important;
+      }
+    </style>
+  </head>
+  <body style="background-color: #dddddd">
+    <script>
+      function postId(elemId, elemName) {
+        fetch("/rmv", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(elemId),
+        })
+          .then((response) => response.text())
+          .then((data) => {
+            sessionStorage.setItem('alertMsg', data);
+            window.location.reload();
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            location.reload();
+          });
+      }
+
+      window.onload = function() {
+        // Toast container
+        let toastContainer = document.getElementById('toast-container');
+        // Session storage alert
+        var alertmsg = sessionStorage.getItem('alertMsg');
+        if (alertmsg) {
+          const html = `
+            <div class="toast align-items-center text-bg-danger border-0 mb-2" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="4000">
+              <div class="d-flex">
+                <div class="toast-body">
+                  ${alertmsg} deleted succesfully!
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+              </div>
+            </div>
+          `;
+          toastContainer.insertAdjacentHTML('beforeend', html);
+          sessionStorage.removeItem('alertMsg');
+        }
+
+        // Flash messages toast initialization
+        document.querySelectorAll('.toast').forEach(function(toastElem) {
+          let toast = new bootstrap.Toast(toastElem);
+          toast.show();
+        });
+      };
+
+      function postCheck(elemId, elemIp) {
+        fetch("/check", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(elemIp),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.health == true)
+              document.getElementById("check" + elemId).style.backgroundColor =
+                "green";
+            else
+              document.getElementById("check" + elemId).style.backgroundColor =
+                "red";
+            const div = document.getElementById("device" + elemId);
+            if (data.deviceos == "Win")
+              div.innerHTML =
+                '<img src="/static/microsoft-windows-logo.png" style="max-width:25px;">';
+            else if (data.deviceos == "Linux")
+              div.innerHTML =
+                '<img src="/static/Linux_Logo.png" style="max-width:25px;">';
+          });
+      }
+      function CheckAll() {
+        var list = {{ list|tojson }};
+        for (const item of list) {
+          postCheck(String(item.id), String(item.ip_address));
+        }
+      }
+    </script>
+    <div class="p-1 text-info text-center mx-auto display-inline-block">
+      <h1>DevHost</h1>
+    </div>
+    <!-- Modal -->
+    <div
+      class="modal fade"
+      id="modalId"
+      tabindex="-1"
+      aria-labelledby="modalTitleId"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-md" role="document">
+        <form method="post" action="/add" autocomplete="off">
+          <div class="modal-content" style="background-color: #ebebeb">
+            <div class="modal-header">
+              <h5 class="modal-title" id="modalTitleId">Add new device</h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-3">
+                <label for="device" class="col-form-label">Device name:</label>
+                <input
+                  class="form-control rounded"
+                  type="text"
+                  name="name"
+                  id="device"
+                  maxlength="20"
+                  required
+                />
+              </div>
+              <div class="mb-3">
+                <label for="ip_address" class="col-form-label"
+                  >Ip Address:</label
+                >
+                <input
+                  class="form-control rounded"
+                  type="text"
+                  id="ip_address"
+                  name="ip_address"
+                  maxlength="15"
+                  required
+                />
+              </div>
+              <div class="mb-3">
+                <label for="Description" class="col-form-label"
+                  >Description:</label
+                >
+                <textarea
+                  class="form-control rounded"
+                  type="text"
+                  name="description"
+                  id="Description"
+                  maxlength="150"
+                ></textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Close
+              </button>
+              <button type="submit" class="btn btn-primary">Save</button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+    <!--Table Container-->
+    <div
+      style="background-color: #f3f3f3"
+      class="container-md my-4 p-4 rounded-4 mx-auto shadow"
+    >
+      <div class="mb-3">
+        <div class="d-flex flex-row gap-2 justify-content-end align-items-end">
+          <button
+            type="button"
+            class="btn btn-primary"
+            id="addBtn"
+            data-bs-toggle="modal"
+            data-bs-target="#modalId"
+          >
+            New
+          </button>
+          <button
+            type="button"
+            class="btn btn-secondary"
+            id="checkAllBtn"
+            onclick="CheckAll()"
+          >
+            Check
+          </button>
+        </div>
+      </div>
+      <div class="table-responsive rounded-4 overflow-hidden">
+        <table class="table table-hover table-borderless mb-0">
+          <thead class="table-primary">
+            <tr>
+              <th class="align-middle" scope="col">Device</th>
+              <th class="align-middle" scope="col">Info</th>
+              <th class="align-middle" scope="col" style="width: 35px">
+                Address
+              </th>
+              <th class="align-middle" scope="col" style="width: 50px">
+                Status
+              </th>
+              <th class="align-middle" scope="col" style="width: 25px">OS</th>
+              <th class="align-middle" scope="col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in list %}
+            <tr>
+              <td class="align-middle">{{item.name}}</td>
+              {% if not item.description %}
+              <td
+                class="align-middle"
+                style="max-width: 300px; word-break: break-word"
+              >
+                -
+              </td>
+              {% else %}
+              <td
+                class="align-middle"
+                style="max-width: 300px; word-break: break-word"
+              >
+                {{item.description}}
+              </td>
+              {% endif %}
+              <td class="align-middle" style="width: 35px">
+                {{item.ip_address}}
+              </td>
+              <td class="align-middle" style="width: 50px">
+                <div class="d-flex justify-content-center">
+                  <div
+                    id="check{{item.id}}"
+                    class="rounded-circle"
+                    style="
+                      width: 22px;
+                      height: 22px;
+                      display: inline-block;
+                      background-color: #6c757d;
+                    "
+                  ></div>
+                </div>
+              </td>
+              <td class="align-middle" style="width: 25px">
+                <div id="device{{item.id}}"></div>
+              </td>
+              <td
+                class="align-middle"
+                style="width: 1%; white-space: nowrap; padding: 1px"
+              >
+                <div
+                  class="d-flex justify-content-end align-items-center py-2 w-100"
+                >
+                  <button
+                    type="button"
+                    class="btn btn-outline-success"
+                    onclick="postCheck('{{item.id}}','{{ item.ip_address }}')"
+                  >
+                    Check
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-close ms-2"
+                    aria-label="Close"
+                    onclick="postId('{{ item.id }}','{{item.name}}')"
+                    style="font-size: 1rem"
+                  ></button>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.8/dist/umd/popper.min.js"
+      integrity="sha384-I7E8VVD/ismYTF4hNIPjVp/Zjvgyol6VFvRkX/vR+Vc4jQkC+hVqc2pM8ODewa9r"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.min.js"
+      integrity="sha384-7qAoOXltbVP82dhxHAUje59V5r2YsVfBafyUDxEdApLPmcdhBPg1DKg1ERo0BZlK"
+      crossorigin="anonymous"
+    ></script>
+    <!-- toast container -->
+    <div id="toast-container" class="toast-container-fixed">
+      {% with messages = get_flashed_messages(with_categories=true) %} {% if
+      messages %} {% for category, message in messages %}
+      <div
+        class="toast align-items-center text-bg-{{ category }} border-0 mb-2"
+        role="alert"
+        aria-live="assertive"
+        aria-atomic="true"
+        data-bs-autohide="true"
+        data-bs-delay="4000"
+      >
+        <div class="d-flex">
+          <div class="toast-body">{{ message }}</div>
+          <button
+            type="button"
+            class="btn-close btn-close-white me-2 m-auto"
+            data-bs-dismiss="toast"
+            aria-label="Close"
+          ></button>
+        </div>
+      </div>
+      {% endfor %} {% endif %} {% endwith %}
+    </div>
+  </body>
+</html>
