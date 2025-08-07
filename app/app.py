@@ -2,7 +2,9 @@ from flask import Flask, request, jsonify , render_template , redirect , url_for
 import psycopg2 
 import os
 import subprocess
+from dotenv import load_dotenv
 
+load_dotenv()
 app = Flask(__name__)
 app.secret_key = "12098as45d6a5s"
 
@@ -10,25 +12,20 @@ list = []
 
 def get_connection():
     return psycopg2.connect(
-        host = 'localhost',
-        port = '5432',
-        user = 'admin',
-        password = 'admin',
-        dbname = 'mydb'
-        #host=os.environ['DB_HOST'],
-        #port=os.environ['DB_PORT'],
-        #user=os.environ['DB_USER'],
-        #password=os.environ['DB_PASSWORD'],
-        #dbname=os.environ['DB_NAME']
+        host=os.getenv('DB_HOST'),
+        port=os.getenv('DB_PORT'),
+        user=os.getenv('DB_USER'),
+        password=os.getenv('DB_PASSWORD'),
+        dbname=os.getenv('DB_NAME')
     )
 
 @app.route('/', methods=["GET"])
-def hello():
+def start():
     create_table()
     list = get_all_devices()
     return render_template("index.html", list=list)
 
-@app.route("/add", methods=["POST"])
+@app.route("/", methods=["POST"])
 def add():
     name = request.form["name"]
     ip = request.form["ip_address"]
@@ -36,15 +33,15 @@ def add():
     print("{name},{ip},{desc}")
     add_device(name,ip,desc)
     flash(f"{name} added succesfully!", "primary")
-    return redirect(url_for("hello"))
+    return redirect(url_for("start"))
 
-@app.route("/rmv", methods=["POST"])
+@app.route("/", methods=["DELETE"])
 def rmv():
     id_data = int(request.get_json())
     name = remove_device(id_data)
     return name
 
-@app.route("/check", methods=["POST"])
+@app.route("/", methods=["PATCH"])
 def check():
     ip_address = request.get_json()
     deviceos = ""

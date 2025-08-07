@@ -10,9 +10,4 @@ services:
       - ./db:/var/lib/postgresql/data
     ports:
       - "5432:5432"
-    healthcheck:
-      test: ["CMD", "pg_isready", "-d", "mydb"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
       
